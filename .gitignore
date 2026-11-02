@@ -11,3 +11,6 @@ public/data/
 
 # Local screenshots (they show real data)
 screenshots/
+
+# Local keys
+.env*.local
