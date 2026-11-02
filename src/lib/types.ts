@@ -1,42 +1,74 @@
-export type ISODate = string; // YYYY-MM-DD, always a local calendar date
+export type ISODate = string; // YYYY-MM-DD, a local calendar date
 
-export type Occurrence = 'one-time' | 'recurring' | 'temporary' | 'evergreen' | 'unsorted';
+export type Occurrence = 'once' | 'repeats' | 'run' | 'always';
 
-export const TYPES: Exclude<Occurrence, 'unsorted'>[] = ['one-time', 'recurring', 'temporary', 'evergreen'];
+export type FamilyId = 'food' | 'music' | 'arts' | 'outdoors' | 'games' | 'social';
 
-export const TYPE_LABEL: Record<Occurrence, string> = {
-  'one-time': 'One-time',
-  recurring: 'Recurring',
-  temporary: 'Temporary',
-  evergreen: 'Evergreen',
-  unsorted: 'Unsorted',
-};
-
-export interface Geo {
-  lat: number;
-  lng: number;
-  /** 'address' = geocoded from the Address field; 'city' = city centre only. */
+export interface Place {
+  id: string;
+  name: string;
+  address: string | null;
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
   precision: 'address' | 'city';
 }
 
-/** One row of the Notion database, cleaned up. Produced by scripts/import.ts. */
-export interface Entry {
+export interface EventType {
   id: string;
   name: string;
+  family: FamilyId;
+  owner_id: string | null;
+}
+
+export interface Entry {
+  id: string;
+  owner_id: string;
+  name: string;
+  place_id: string | null;
+  place: Place | null;
   occurrence: Occurrence;
-  /** True when Occurence was blank and the type was guessed from the Date. */
-  typeInferred?: boolean;
-  categories: string[];
-  city?: string;
-  address?: string;
-  url?: string;
-  createdAt?: string;
-  start?: ISODate;
-  end?: ISODate;
-  /** 24h "HH:MM" when the Notion date carried a time. */
-  time?: string;
-  /** Free-text repeat rule, e.g. "every other Thursday", "1st & 3rd Monday". */
-  repeats?: string;
-  inDfw: boolean;
-  geo?: Geo;
+  start_date: ISODate | null;
+  end_date: ISODate | null;
+  start_time: string | null; // HH:MM:SS
+  repeats: string | null;
+  free: boolean;
+  source_url: string | null;
+  copied_from: string | null;
+  created_at: string;
+  type_ids: string[]; // first one sets the colour
+}
+
+export interface Member {
+  user_id: string;
+  name: string | null;
+  avatar_url: string | null;
+}
+
+export interface PlanStop {
+  id: string;
+  entry_id: string;
+  position: number;
+  start_time: string | null;
+  entry: Entry;
+}
+
+export interface Plan {
+  id: string;
+  created_by: string;
+  date: ISODate;
+  stops: PlanStop[];
+  members: Member[];
+}
+
+export interface List {
+  id: string;
+  name: string;
+  entry_ids: string[];
+}
+
+export interface Profile {
+  id: string;
+  name: string | null;
+  avatar_url: string | null;
 }

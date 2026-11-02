@@ -67,37 +67,12 @@ export function formatTime(hhmm: string): string {
   return min ? `${h12}:${pad(min)}${suffix}` : `${h12}${suffix}`;
 }
 
-const SIDE = /([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*(AM|PM)?)?/i;
-
-function parseSide(s: string): { date: ISODate; time?: string } | null {
-  const m = SIDE.exec(s);
-  if (!m) return null;
-  const month = MONTHS.indexOf(m[1].toLowerCase()) + 1;
-  if (!month) return null;
-  const date = toISO(Number(m[3]), month, Number(m[2]));
-  if (!m[4]) return { date };
-  let h = Number(m[4]);
-  const ampm = m[6]?.toUpperCase();
-  if (ampm === 'PM' && h < 12) h += 12;
-  if (ampm === 'AM' && h === 12) h = 0;
-  return { date, time: `${pad(h)}:${m[5]}` };
+/** "Mon, Nov 2" */
+export function formatDay(iso: ISODate): string {
+  return `${WEEKDAY_SHORT[weekday(iso)]}, ${formatShort(iso)}`;
 }
 
-/**
- * Parses Notion's CSV date column:
- *   "October 9, 2026"
- *   "October 9, 2026 → October 17, 2026"
- *   "June 28, 2026 18:30 (CDT)"  /  "June 28, 2026 6:30 PM"
- */
-export function parseNotionDate(raw: string): { start?: ISODate; end?: ISODate; time?: string } {
-  if (!raw?.trim()) return {};
-  const [a, b] = raw.split('→');
-  const start = parseSide(a);
-  if (!start) return {};
-  const end = b ? parseSide(b) : null;
-  return {
-    start: start.date,
-    end: end && end.date !== start.date ? end.date : undefined,
-    time: start.time,
-  };
-}
+export const monthShort = (iso: ISODate) => MONTH_SHORT[parts(iso).m - 1];
+
+/** Sunday that starts the week containing `iso`. */
+export const weekStart = (iso: ISODate) => addDays(iso, -weekday(iso));

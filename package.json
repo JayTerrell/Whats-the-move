@@ -1,29 +1,29 @@
 {
-  "name": "dfw-events-calendar",
+  "name": "whats-the-move",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "import": "tsx scripts/import.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "maplibre-gl": "^6.11.2",
+    "@googlemaps/markerclusterer": "^2.6.2",
+    "@supabase/supabase-js": "^2.118.0",
+    "@vis.gl/react-google-maps": "^1.10.2",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
+    "@types/google.maps": "^3.66.9",
     "@types/node": "^26.6.4",
-    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "papaparse": "^5.7.0",
-    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.2",
     "vitest": "^5.0.3"
