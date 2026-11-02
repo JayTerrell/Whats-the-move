@@ -77,6 +77,7 @@ create table public.entries (
   free boolean not null default false,
   source_url text,
   copied_from uuid references public.entries (id) on delete set null,
+  starred_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

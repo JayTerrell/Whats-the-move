@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Back, Sheet, useEntryColor } from '../components/ui';
+import { Back, Sheet, StarButton, useEntryColor } from '../components/ui';
 import { formatDay, monthShort, parts, todayISO, WEEKDAY_SHORT, weekday } from '../lib/dates';
 import { familyColor } from '../lib/families';
 import { googleMapsUrl, placeLine } from '../lib/places';
@@ -71,6 +71,7 @@ function EntryView({ entry, mine }: { entry: Entry; mine: boolean }) {
       <div className="hero" style={{ position: 'relative' }}>
         <div className="hero-bar">
           <Back />
+          {mine && <StarButton entry={entry} className="on-hero" />}
         </div>
         <div className="poster" style={color}>
           <div className="tags">

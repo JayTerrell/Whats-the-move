@@ -184,6 +184,18 @@ function useStoreState() {
     [],
   );
 
+  const toggleStar = useCallback(async (entry: Entry) => {
+    const starred_at = entry.starred_at ? null : new Date().toISOString();
+    const set = (value: string | null | undefined) =>
+      setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, starred_at: value } : e)));
+    set(starred_at);
+    const { error } = await supabase.from('entries').update({ starred_at }).eq('id', entry.id);
+    if (error) {
+      set(entry.starred_at);
+      throw new Error(error.message);
+    }
+  }, []);
+
   const deleteEntry = useCallback(
     async (id: string) => {
       fail((await supabase.from('entries').delete().eq('id', id)).error);
@@ -327,6 +339,7 @@ function useStoreState() {
     takeReturnPath,
     saveEntry,
     deleteEntry,
+    toggleStar,
     planFor,
     toggleAttend,
     inviteLink,

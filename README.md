@@ -18,6 +18,7 @@ npm test                      # repeat rules and share parsing
 | Path | What |
 | --- | --- |
 | `supabase/schema.sql` | Tables, default event types, row level security, invite functions |
+| `supabase/updates/` | Changes to run on an existing project, in order |
 | `src/lib/store.tsx` | Loads your data and every change you make |
 | `src/lib/recurrence.ts` | Plain-English repeat rules ("1st & 3rd Friday") |
 | `src/lib/schedule.ts` | What's on a given day, and what needs details |

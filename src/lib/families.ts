@@ -19,3 +19,9 @@ export function familyOf(typeIds: string[], types: Map<string, EventType>): Fami
   }
   return null;
 }
+
+/** Event types in family order, then by name: the order buckets and sections use. */
+export function typesInOrder(types: EventType[]): EventType[] {
+  const rank = new Map(FAMILIES.map((f, i) => [f.id, i]));
+  return [...types].sort((a, b) => (rank.get(a.family) ?? 9) - (rank.get(b.family) ?? 9) || a.name.localeCompare(b.name));
+}

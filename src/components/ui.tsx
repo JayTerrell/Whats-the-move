@@ -52,13 +52,51 @@ export function AttendButton({ entry, date }: { entry: Entry; date: ISODate }) {
   );
 }
 
-export function EntryRow({ entry, date, sub, attend = true }: { entry: Entry; date?: ISODate; sub?: string; attend?: boolean }) {
+export function StarButton({ entry, className = '' }: { entry: Entry; className?: string }) {
+  const { toggleStar, toast } = useStore();
+  const on = !!entry.starred_at;
+  return (
+    <button
+      className={`star ${on ? 'on' : ''} ${className}`}
+      aria-pressed={on}
+      aria-label={on ? 'Unstar' : 'Star'}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleStar(entry).catch((err) => toast(err.message));
+      }}
+    >
+      {on ? '★' : '☆'}
+    </button>
+  );
+}
+
+/** Event type names for an entry, in its own order. */
+export function useTypeNames(entry: Entry): string {
+  const { typeMap } = useStore();
+  return entry.type_ids.map((id) => typeMap.get(id)?.name).filter(Boolean).join(' · ');
+}
+
+export function EntryRow({ entry, date, sub, attend = true, types = false, star = false }: {
+  entry: Entry;
+  date?: ISODate;
+  sub?: string;
+  attend?: boolean;
+  types?: boolean;
+  star?: boolean;
+}) {
   const style = useEntryColor(entry);
+  const typeNames = useTypeNames(entry);
   const line = sub ?? [whenText(entry, date), where(entry)].filter(Boolean).join(' · ');
   return (
     <Link to={`/entry/${entry.id}`} className="rowcard" style={style}>
       <span className="thumb" />
       <span className="grow">
+        {types && (
+          <span className="rowtype ellipsis" style={{ display: 'block' }}>
+            {typeNames || 'No type'}
+          </span>
+        )}
         <span className="name ellipsis" style={{ display: 'block' }}>
           {entry.name}
         </span>
@@ -67,6 +105,7 @@ export function EntryRow({ entry, date, sub, attend = true }: { entry: Entry; da
         </span>
       </span>
       {attend && date && <AttendButton entry={entry} date={date} />}
+      {star && <StarButton entry={entry} />}
     </Link>
   );
 }

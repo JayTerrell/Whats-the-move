@@ -36,6 +36,7 @@ export interface Entry {
   source_url: string | null;
   copied_from: string | null;
   created_at: string;
+  starred_at?: string | null; // set when you star it
   type_ids: string[]; // first one sets the colour
 }
 

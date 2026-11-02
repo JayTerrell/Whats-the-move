@@ -108,6 +108,10 @@ input::placeholder, textarea::placeholder { color: #8a8c9b; }
 .rowcard:hover { background: var(--hover); }
 .rowcard .name { font-weight: 700; font-size: 15px; }
 .rowcard .sub { font-size: 13px; color: var(--muted); }
+.rowtype { font-size: 12px; font-weight: 700; color: color-mix(in oklch, var(--c, var(--muted)) 75%, white); }
+.star { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; line-height: 1; color: var(--muted); }
+.star.on { color: var(--f-outdoors); }
+.star:hover { background: var(--surface-2); }
 .thumb { width: 52px; height: 52px; border-radius: 16px; flex: none; background: color-mix(in oklch, var(--c, var(--muted)) 35%, var(--surface-2)); position: relative; overflow: hidden; }
 .thumb::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, color-mix(in oklch, var(--c, var(--muted)) 18%, transparent) 0 6px, transparent 6px 12px); }
 .datetile { width: 48px; height: 48px; border-radius: 16px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--c, var(--surface-2)); color: var(--ink); }
@@ -121,6 +125,19 @@ input::placeholder, textarea::placeholder { color: #8a8c9b; }
 .gridcard { display: flex; flex-direction: column; gap: 6px; text-decoration: none; min-width: 0; }
 .gridcard .poster { height: 150px; border-radius: 20px; }
 .gridcard .poster .p-name { font-size: 18px; }
+
+/* ---------- Saved: buckets and sections ---------- */
+.buckets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bucket { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 20px; background: color-mix(in oklch, var(--c, var(--muted)) 14%, var(--surface)); text-decoration: none; min-width: 0; }
+.bucket:hover { background: color-mix(in oklch, var(--c, var(--muted)) 22%, var(--surface)); }
+.bucket .b-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bucket .b-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.bucket.empty { opacity: 0.4; pointer-events: none; }
+.bucket.wide { grid-column: 1 / -1; }
+.group-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 2px; text-align: left; }
+.group-head .h3 { flex: 1; min-width: 0; }
+.group-head .chev { color: var(--muted); transition: transform 0.15s ease-out; }
+.group-head[aria-expanded="false"] .chev { transform: rotate(-90deg); }
 
 /* ---------- plan cards ---------- */
 .plancard { border-radius: 28px; padding: 18px; background: var(--c, var(--text)); color: var(--ink); display: flex; flex-direction: column; gap: 10px; text-decoration: none; }
@@ -232,3 +249,6 @@ input::placeholder, textarea::placeholder { color: #8a8c9b; }
 .banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 22px; background: color-mix(in oklch, var(--coral) 16%, var(--surface)); text-decoration: none; font-weight: 600; }
 
 .signin { min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; gap: 28px; padding: 32px 22px; }
+.star.on-poster { width: 32px; height: 32px; margin: -6px -6px 0 0; font-size: 18px; }
+.star.on-hero { background: var(--ink); }
+.star.on-hero:hover { background: var(--ink); }
