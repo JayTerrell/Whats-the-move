@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { GoogleButton } from '../components/GoogleButton';
 import { formatDay, formatTime } from '../lib/dates';
 import { useStore } from '../lib/store';
 import { supabase } from '../lib/supabase';
@@ -18,7 +19,7 @@ interface Preview {
 
 export default function Invite() {
   const { token = '' } = useParams();
-  const { user, authReady, signIn, acceptInvite, toast } = useStore();
+  const { user, authReady, acceptInvite, toast } = useStore();
   const navigate = useNavigate();
   const [preview, setPreview] = useState<Preview | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -59,9 +60,7 @@ export default function Invite() {
         <span className="muted">{preview.members} going</span>
       </div>
       {!user ? (
-        <button className="btn primary block" onClick={() => signIn(`/i/${token}`)}>
-          Accept with Google
-        </button>
+        <GoogleButton text="signin_with" />
       ) : preview.is_member ? (
         <button className="btn light block" onClick={() => navigate(`/plan/${preview.plan_id}`)}>
           Open the plan
