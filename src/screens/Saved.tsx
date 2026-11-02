@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ActiveFilters, FilterSheetBody } from '../components/FilterSheet';
 import { SearchBar } from '../components/SearchBar';
@@ -17,7 +17,7 @@ const OCCURRENCE: [Occurrence, string][] = [
   ['always', 'Always open'],
 ];
 const NO_TYPE = 'none';
-const COLLAPSED_KEY = 'wtm.collapsed';
+const STARRED = 'starred';
 
 interface Group {
   id: string;
@@ -26,42 +26,15 @@ interface Group {
   entries: Entry[];
 }
 
-function readCollapsed(): Set<string> {
-  try {
-    return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]'));
-  } catch {
-    return new Set();
-  }
-}
-
-/** Sections a list collapses to. Remembered on this device. */
-function useCollapsed() {
-  const [collapsed, setCollapsed] = useState(readCollapsed);
-  const save = useCallback((next: Set<string>) => {
-    setCollapsed(next);
-    try {
-      localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
-    } catch {
-      /* fine: just won't be remembered */
-    }
-  }, []);
-  return [collapsed, save] as const;
-}
-
 /**
- * /saved            event type buckets
- * /saved?all        everything, grouped by event type
- * /saved?type=<id>  one event type ("none" for entries without one)
- * /saved?starred    your starred shortlist, grouped by event type
- * /saved?q=<text>   search results, grouped by event type
+ * /saved            everything, grouped by event type, all folded (Starred first)
+ * /saved?q=<text>   search results, grouped the same way and open
+ * /saved?inbox      entries that need details
  */
 export default function Saved() {
-  const { entries, types, typeMap } = useStore();
+  const { entries, types, typeMap, filter } = useStore();
   const [params, setParams] = useSearchParams();
   const q = params.get('q') ?? '';
-  const typeId = params.get('type');
-  const all = params.has('all');
-  const starred = params.has('starred');
   const inbox = params.has('inbox');
   const [sort, setSort] = useState<Sort>('recent');
   const [view, setView] = useState<'list' | 'grid'>('list');
@@ -69,7 +42,8 @@ export default function Saved() {
   const [how, setHow] = useState<Set<Occurrence>>(new Set());
   const [freeOnly, setFreeOnly] = useState(false);
   const [city, setCity] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useCollapsed();
+  // Sections you've flipped from their default: folded when browsing, open when searching.
+  const [flipped, setFlipped] = useState<{ browse: Set<string>; search: Set<string> }>({ browse: new Set(), search: new Set() });
   const today = todayISO();
 
   const typed = useFiltered(entries);
@@ -79,7 +53,7 @@ export default function Saved() {
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12).map(([c]) => c);
   }, [entries]);
 
-  // Everything that passes search and filters, sorted. Groups keep this order.
+  // Everything that passes search and filters, sorted. Sections keep this order.
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
     const list = typed.filter((e) => {
@@ -102,159 +76,112 @@ export default function Saved() {
     );
   }, [typed, q, how, freeOnly, city, sort, typeMap, today]);
 
-  // One group per event type, in family order. An entry with two types shows in both.
-  const groupsOf = useCallback(
-    (list: Entry[]): Group[] => {
-      const groups: Group[] = typesInOrder(types).map((t) => ({ id: t.id, name: t.name, type: t, entries: [] }));
-      const byId = new Map(groups.map((g) => [g.id, g]));
-      const untyped: Group = { id: NO_TYPE, name: 'No type', entries: [] };
-      for (const e of list) {
-        const mine = e.type_ids.map((t) => byId.get(t)).filter((g) => !!g);
-        if (mine.length) mine.forEach((g) => g.entries.push(e));
-        else untyped.entries.push(e);
-      }
-      return untyped.entries.length ? [...groups, untyped] : groups;
-    },
-    [types],
-  );
+  const searching = !!q.trim() || filter.size > 0 || how.size > 0 || freeOnly || !!city;
+
+  // Starred first, then one section per event type in family order. An entry with two types shows in both.
+  const groups = useMemo(() => {
+    const byType: Group[] = typesInOrder(types).map((t) => ({ id: t.id, name: t.name, type: t, entries: [] }));
+    const byId = new Map(byType.map((g) => [g.id, g]));
+    const untyped: Group = { id: NO_TYPE, name: 'No type', entries: [] };
+    for (const e of shown) {
+      const mine = e.type_ids.map((t) => byId.get(t)).filter((g) => !!g);
+      if (mine.length) mine.forEach((g) => g.entries.push(e));
+      else untyped.entries.push(e);
+    }
+    const starred: Group = { id: STARRED, name: 'Starred', entries: shown.filter((e) => e.starred_at) };
+    return [starred, ...byType, untyped].filter((g) => g.entries.length || (g.id === STARRED && !searching));
+  }, [types, shown, searching]);
 
   const needing = useMemo(() => entries.filter((e) => issuesFor(e).length), [entries]);
-  const starCount = useMemo(() => shown.filter((e) => e.starred_at).length, [shown]);
 
-  const setQ = (v: string) =>
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (v) next.set('q', v);
-        else next.delete('q');
-        return next;
-      },
-      { replace: true },
-    );
+  const mode = searching ? 'search' : 'browse';
+  const isOpen = (id: string) => (searching ? !flipped.search.has(id) : flipped.browse.has(id));
+  const setOpen = (ids: string[], open: boolean) => {
+    const next = new Set(flipped[mode]);
+    ids.forEach((id) => (open === searching ? next.delete(id) : next.add(id)));
+    setFlipped({ ...flipped, [mode]: next });
+  };
+  const anyOpen = groups.some((g) => isOpen(g.id));
+
+  const setQ = (v: string) => setParams(v ? { q: v } : {}, { replace: true });
 
   if (inbox) return <Inbox entries={needing} />;
-
-  const browsing = !!(q || typeId || all || starred);
-  const only = typeId ? (typeId === NO_TYPE ? { name: 'No type' } : typeMap.get(typeId)) : null;
-  const scoped = starred ? shown.filter((e) => e.starred_at) : shown;
-  const groups = typeId
-    ? groupsOf(scoped).filter((g) => g.id === typeId)
-    : groupsOf(scoped).filter((g) => g.entries.length);
-  const count = typeId ? (groups[0]?.entries.length ?? 0) : scoped.length;
-  const title = starred ? 'Starred' : only ? only.name : all ? 'Everything' : q ? 'Search' : 'Saved';
-  const grouped = !typeId;
-  const allCollapsed = grouped && groups.length > 0 && groups.every((g) => collapsed.has(g.id));
-
-  const toggle = (id: string) => {
-    const next = new Set(collapsed);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setCollapsed(next);
-  };
 
   return (
     <div className="screen enter">
       <div className="row spread">
-        <div className="row">
-          {browsing && <Back to="/saved" />}
-          <h1 className="h2 ellipsis">{title}</h1>
-        </div>
-        <span className="muted">{browsing ? count : shown.length}</span>
+        <h1 className="h2">Saved</h1>
+        <span className="muted">{shown.length}</span>
       </div>
       <div className="stack">
-        <SearchBar value={q} onChange={setQ} onFilter={() => setFiltering(true)} autoFocus={!!q && !typeId && !all && !starred} />
+        <SearchBar value={q} onChange={setQ} onFilter={() => setFiltering(true)} autoFocus={!!q} />
         <ActiveFilters />
       </div>
-
-      {!browsing ? (
-        <>
-          {needing.length > 0 && (
-            <Link to="/saved?inbox" className="banner">
-              <span>{needing.length} need details</span>
-              <span>›</span>
-            </Link>
-          )}
-          <div className="buckets">
-            <Link to="/saved?starred" className="bucket wide" style={{ '--c': 'var(--f-outdoors)' } as CSSProperties}>
-              <span className="star on" style={{ width: 'auto', height: 'auto', fontSize: 18 }} aria-hidden>
-                ★
-              </span>
-              <span className="b-name">Starred</span>
-              <span className="b-count">{starCount}</span>
-            </Link>
-          </div>
-          <section className="sec">
-            <div className="sec-head">
-              <h2 className="h3">Event types</h2>
-              <Link to="/saved?all">See all</Link>
-            </div>
-            <div className="buckets">
-              {groupsOf(shown).map((g) => (
-                <Link
-                  key={g.id}
-                  to={`/saved?type=${g.id}`}
-                  className={`bucket ${g.entries.length ? '' : 'empty'}`}
-                  style={{ '--c': familyColor(g.type?.family) } as CSSProperties}
-                  aria-disabled={!g.entries.length}
-                  tabIndex={g.entries.length ? undefined : -1}
-                >
-                  <span className="dot" />
-                  <span className="b-name">{g.name}</span>
-                  <span className="b-count">{g.entries.length}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-        </>
-      ) : (
-        <>
-          <div className="row spread">
-            <div className="seg">
-              {(['recent', 'soonest', 'az'] as Sort[]).map((s) => (
-                <button key={s} className={sort === s ? 'on' : ''} onClick={() => setSort(s)}>
-                  {s === 'recent' ? 'Recent' : s === 'soonest' ? 'Soonest' : 'A–Z'}
-                </button>
-              ))}
-            </div>
-            <button className="chip" onClick={() => setView(view === 'list' ? 'grid' : 'list')}>
-              {view === 'list' ? 'Grid' : 'List'}
-            </button>
-          </div>
-          {grouped && groups.length > 1 && (
-            <div className="row" style={{ marginTop: -8 }}>
-              <button
-                className="linkbtn"
-                onClick={() => setCollapsed(allCollapsed ? new Set() : new Set([...collapsed, ...groups.map((g) => g.id)]))}
-              >
-                {allCollapsed ? 'Expand all' : 'Collapse all'}
-              </button>
-            </div>
-          )}
-
-          {count === 0 && <p className="empty">{starred && !q ? 'Star something to keep it here.' : 'Nothing saved matches that yet.'}</p>}
-          {groups.map((g) =>
-            grouped ? (
-              <section key={g.id} className="sec" style={{ '--c': familyColor(g.type?.family) } as CSSProperties}>
-                <button className="group-head" aria-expanded={!collapsed.has(g.id)} onClick={() => toggle(g.id)}>
-                  <span className="dot" />
-                  <span className="h3 ellipsis">{g.name}</span>
-                  <span className="muted">{g.entries.length}</span>
-                  <span className="chev" aria-hidden>
-                    ▾
-                  </span>
-                </button>
-                {!collapsed.has(g.id) && <Entries list={g.entries} view={view} />}
-              </section>
-            ) : (
-              <Entries key={g.id} list={g.entries} view={view} />
-            ),
-          )}
-        </>
+      {needing.length > 0 && !searching && (
+        <Link to="/saved?inbox" className="banner">
+          <span>{needing.length} need details</span>
+          <span>›</span>
+        </Link>
       )}
+      <div className="row spread">
+        <div className="seg">
+          {(['recent', 'soonest', 'az'] as Sort[]).map((s) => (
+            <button key={s} className={sort === s ? 'on' : ''} onClick={() => setSort(s)}>
+              {s === 'recent' ? 'Recent' : s === 'soonest' ? 'Soonest' : 'A–Z'}
+            </button>
+          ))}
+        </div>
+        <button className="chip" onClick={() => setView(view === 'list' ? 'grid' : 'list')}>
+          {view === 'list' ? 'Grid' : 'List'}
+        </button>
+      </div>
+      {groups.length > 1 && (
+        <div className="row" style={{ marginTop: -8 }}>
+          <button className="linkbtn" onClick={() => setOpen(groups.map((g) => g.id), !anyOpen)}>
+            {anyOpen ? 'Collapse all' : 'Expand all'}
+          </button>
+        </div>
+      )}
+
+      {shown.length === 0 && <p className="empty">Nothing saved matches that yet.</p>}
+      <div className="stack" style={{ gap: 4 }}>
+        {groups.map((g) => {
+          const open = isOpen(g.id);
+          const star = g.id === STARRED;
+          return (
+            <section
+              key={g.id}
+              className="sec"
+              style={{ '--c': star ? 'var(--f-outdoors)' : familyColor(g.type?.family), paddingBottom: open ? 12 : 0 } as CSSProperties}
+            >
+              <button className="group-head" aria-expanded={open} onClick={() => setOpen([g.id], !open)}>
+                {star ? (
+                  <span className="star on" style={{ width: 'auto', height: 'auto', fontSize: 15 }} aria-hidden>
+                    ★
+                  </span>
+                ) : (
+                  <span className="dot" />
+                )}
+                <span className="h3 ellipsis">{g.name}</span>
+                <span className="muted">{g.entries.length}</span>
+                <span className="chev" aria-hidden>
+                  ▾
+                </span>
+              </button>
+              {open &&
+                (g.entries.length ? (
+                  <Entries list={g.entries} view={view} />
+                ) : (
+                  <p className="muted small">Star something to keep it here.</p>
+                ))}
+            </section>
+          );
+        })}
+      </div>
 
       {filtering && (
         <Sheet onClose={() => setFiltering(false)}>
-          <FilterSheetBody count={browsing ? count : shown.length} onDone={() => setFiltering(false)}>
+          <FilterSheetBody count={shown.length} onDone={() => setFiltering(false)}>
             <div className="stack">
               <span className="label">How often</span>
               <div className="chips wrap">

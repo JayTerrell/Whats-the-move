@@ -126,14 +126,7 @@ input::placeholder, textarea::placeholder { color: #8a8c9b; }
 .gridcard .poster { height: 150px; border-radius: 20px; }
 .gridcard .poster .p-name { font-size: 18px; }
 
-/* ---------- Saved: buckets and sections ---------- */
-.buckets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.bucket { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 20px; background: color-mix(in oklch, var(--c, var(--muted)) 14%, var(--surface)); text-decoration: none; min-width: 0; }
-.bucket:hover { background: color-mix(in oklch, var(--c, var(--muted)) 22%, var(--surface)); }
-.bucket .b-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bucket .b-count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
-.bucket.empty { opacity: 0.4; pointer-events: none; }
-.bucket.wide { grid-column: 1 / -1; }
+/* ---------- Saved: sections ---------- */
 .group-head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 2px; text-align: left; }
 .group-head .h3 { flex: 1; min-width: 0; }
 .group-head .chev { color: var(--muted); transition: transform 0.15s ease-out; }
