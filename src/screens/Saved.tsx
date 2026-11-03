@@ -5,7 +5,7 @@ import { SearchBar } from '../components/SearchBar';
 import { Back, EntryRow, Poster, Sheet, StarButton } from '../components/ui';
 import { todayISO } from '../lib/dates';
 import { familyColor, typesInOrder } from '../lib/families';
-import { issuesFor, ISSUE_LABEL, upcomingDates, type Issue } from '../lib/schedule';
+import { isPast, issuesFor, ISSUE_LABEL, upcomingDates, type Issue } from '../lib/schedule';
 import { useFiltered, useStore } from '../lib/store';
 import type { Entry, EventType, Occurrence } from '../lib/types';
 
@@ -18,6 +18,7 @@ const OCCURRENCE: [Occurrence, string][] = [
 ];
 const NO_TYPE = 'none';
 const STARRED = 'starred';
+const PAST = 'past';
 
 interface Group {
   id: string;
@@ -83,16 +84,20 @@ export default function Saved() {
     const byType: Group[] = typesInOrder(types).map((t) => ({ id: t.id, name: t.name, type: t, entries: [] }));
     const byId = new Map(byType.map((g) => [g.id, g]));
     const untyped: Group = { id: NO_TYPE, name: 'No type', entries: [] };
-    for (const e of shown) {
+    const past: Group = { id: PAST, name: 'Past', entries: shown.filter((e) => isPast(e, today)) };
+    const current = shown.filter((e) => !isPast(e, today));
+    for (const e of current) {
       const mine = e.type_ids.map((t) => byId.get(t)).filter((g) => !!g);
       if (mine.length) mine.forEach((g) => g.entries.push(e));
       else untyped.entries.push(e);
     }
-    const starred: Group = { id: STARRED, name: 'Starred', entries: shown.filter((e) => e.starred_at) };
-    return [starred, ...byType, untyped].filter((g) => g.entries.length || (g.id === STARRED && !searching));
-  }, [types, shown, searching]);
+    const starred: Group = { id: STARRED, name: 'Starred', entries: current.filter((e) => e.starred_at) };
+    return [starred, ...byType, untyped, past].filter((g) => g.entries.length || (g.id === STARRED && !searching));
+  }, [types, shown, searching, today]);
+  const currentCount = useMemo(() => shown.filter((e) => !isPast(e, today)).length, [shown, today]);
 
-  const needing = useMemo(() => entries.filter((e) => issuesFor(e).length), [entries]);
+  // Past entries don't need fixing.
+  const needing = useMemo(() => entries.filter((e) => !isPast(e, today) && issuesFor(e).length), [entries, today]);
 
   const mode = searching ? 'search' : 'browse';
   const isOpen = (id: string) => (searching ? !flipped.search.has(id) : flipped.browse.has(id));
@@ -111,7 +116,7 @@ export default function Saved() {
     <div className="screen enter">
       <div className="row spread">
         <h1 className="h2">Saved</h1>
-        <span className="muted">{shown.length}</span>
+        <span className="muted">{currentCount}</span>
       </div>
       <div className="stack">
         <SearchBar value={q} onChange={setQ} onFilter={() => setFiltering(true)} autoFocus={!!q} />
@@ -148,11 +153,12 @@ export default function Saved() {
         {groups.map((g) => {
           const open = isOpen(g.id);
           const star = g.id === STARRED;
+          const past = g.id === PAST;
           return (
             <section
               key={g.id}
               className="sec"
-              style={{ '--c': star ? 'var(--f-outdoors)' : familyColor(g.type?.family), paddingBottom: open ? 12 : 0 } as CSSProperties}
+              style={{ '--c': star ? 'var(--f-outdoors)' : familyColor(g.type?.family), paddingBottom: open ? 12 : 0, opacity: past && !open ? 0.6 : 1 } as CSSProperties}
             >
               <button className="group-head" aria-expanded={open} onClick={() => setOpen([g.id], !open)}>
                 {star ? (

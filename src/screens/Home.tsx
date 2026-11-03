@@ -5,7 +5,7 @@ import { SearchBar } from '../components/SearchBar';
 import { Avatar, DateTile, Poster, Sheet, where } from '../components/ui';
 import { addDays, diffDays, formatDay, formatShort, formatTime, todayISO, WEEKDAY_SHORT, weekday } from '../lib/dates';
 import { familyColor, familyOf } from '../lib/families';
-import { activeOn, rootOf, whenText } from '../lib/schedule';
+import { activeOn, isPast, rootOf, whenText } from '../lib/schedule';
 import { useFiltered, useStore } from '../lib/store';
 import type { Entry, ISODate, Plan } from '../lib/types';
 import Menu from './Menu';
@@ -247,12 +247,13 @@ function useFeed(visible: Entry[], today: ISODate) {
       (x) => x.entry.id,
     );
 
-    const starred = visible
+    const current = visible.filter((e) => !isPast(e, today));
+    const starred = current
       .filter((e) => e.starred_at)
       .sort((a, b) => (b.starred_at ?? '').localeCompare(a.starred_at ?? ''))
       .slice(0, RAIL);
     const weekAgo = addDays(today, -7);
-    const recent = visible.filter((e) => e.created_at.slice(0, 10) >= weekAgo).slice(0, RAIL);
+    const recent = current.filter((e) => e.created_at.slice(0, 10) >= weekAgo).slice(0, RAIL);
     const always = dailyShuffle(
       visible.filter((e) => e.occurrence === 'always' && activeOn(e, today) && e.place),
       today,

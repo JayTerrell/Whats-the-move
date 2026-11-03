@@ -29,6 +29,21 @@ export function activeOn(entry: Entry, date: ISODate): boolean {
   }
 }
 
+/** Has this entry's last date gone by? Entries without dates never pass. */
+export function isPast(entry: Entry, today: ISODate): boolean {
+  const before = (d: ISODate | null) => !!d && d < today;
+  switch (entry.occurrence) {
+    case 'once':
+      return before(entry.start_date);
+    case 'run':
+      return before(entry.end_date ?? entry.start_date);
+    case 'repeats':
+      return ruleOf(entry) ? before(entry.end_date) : before(entry.end_date ?? entry.start_date);
+    case 'always':
+      return before(entry.end_date);
+  }
+}
+
 /** The next dates an entry can be attended, starting from `from`. */
 export function upcomingDates(entry: Entry, from: ISODate, count = 7): ISODate[] {
   const out: ISODate[] = [];
