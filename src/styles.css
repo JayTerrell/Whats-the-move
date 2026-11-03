@@ -98,7 +98,7 @@ input::placeholder, textarea::placeholder { color: #8a8c9b; }
 .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--text); color: var(--ink); white-space: nowrap; }
 .badge.dark { background: var(--ink); color: var(--text); }
 
-.hscroll { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px; scroll-snap-type: x mandatory; }
+.hscroll { display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 0 18px; scroll-snap-type: x mandatory; scroll-padding-inline: 18px; }
 .hcard { flex: none; width: 220px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; scroll-snap-align: start; }
 .hcard .poster { height: 150px; }
 .hcard .name { font-weight: 700; font-size: 16px; }
